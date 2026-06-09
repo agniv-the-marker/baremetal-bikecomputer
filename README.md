@@ -2,7 +2,7 @@
 
 this is a self contained GPS bike computer for the raspberry pi, which is my cs240lx final project. it shows live ride stats, a color road map on a tft, and logs the whole ride as a timestamped gpx to the sd card, so you can pull the card and upload it to strava!
 
-ive verified this working on a 23 mile ride over just 3 hours, which had zero corruption!
+ive verified this working on a 23 mile ride over just 3 hours, which had zero corruption! see https://www.strava.com/activities/18830867953
 
 this is roughly a peripherals and also a systems project, as you care a lot about optimizing cpu cycles in the opposite direction! specifically, this uses a gps, a color spi display, sd on bare metal, and its driven mostly with the dma (for both the screen and the sd card), and we use the pmu to check the cycle counts, and chase low power with wfi.
 
@@ -20,6 +20,8 @@ roughly ~4.3k lines of C (plus another ~1.5k of test programs):
                         emmc.c (+DMA)
                         (Arasan SDHCI)
 ```
+
+this was inspired by https://github.com/hishizuka/pizero_bikecomputer!
 
 ## features
 
