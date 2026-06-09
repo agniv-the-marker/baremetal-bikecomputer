@@ -1,0 +1,19 @@
+# build artifacts
+objs/
+*.bin
+*.list
+*.elf
+*.o
+*.d
+*~
+*.bak
+
+# personal ride logs (contain location)
+*.gpx
+
+# generated map data (built by tools/osm2bin.py, copied to the SD card)
+ROADS.BIN
+*.BIN
+
+# vendored class deps (`make vendor`)
+deps/
