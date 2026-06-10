@@ -17,3 +17,7 @@ ROADS.BIN
 
 # vendored class deps (`make vendor`)
 deps/
+
+# raw photo/video originals (the README uses the converted jpgs)
+*.HEIC
+*.MP4

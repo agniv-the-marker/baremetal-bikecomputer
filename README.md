@@ -4,6 +4,11 @@ this is a self contained GPS bike computer for the raspberry pi, which is my cs2
 
 ive verified this working on a 23 mile ride over just 3 hours, which had zero corruption! see https://www.strava.com/activities/18830867953
 
+<p align="center">
+  <img src="docs/images/IMG_8673.jpg" width="55%" alt="the breadboard bike computer strapped to the bike with the map page up">
+</p>
+<p align="center"><em>peak breadboard engineering. it lives on the frame bag.</em></p>
+
 this is roughly a peripherals and also a systems project, as you care a lot about optimizing cpu cycles in the opposite direction! specifically, this uses a gps, a color spi display, sd on bare metal, and its driven mostly with the dma (for both the screen and the sd card), and we use the pmu to check the cycle counts, and chase low power with wfi.
 
 roughly ~4.3k lines of C (plus another ~1.5k of test programs):
@@ -22,6 +27,8 @@ roughly ~4.3k lines of C (plus another ~1.5k of test programs):
 ```
 
 this was inspired by https://github.com/hishizuka/pizero_bikecomputer!
+
+slides at https://docs.google.com/presentation/d/16DCIUVBeaiG64uW5NP0XSgmRlXVI0VN6gde_-T9v7nI/edit?slide=id.p#slide=id.p
 
 ## features
 
@@ -54,6 +61,12 @@ a surprising amount of this project was hardware dying on me:
 
 so the ui pivoted st7789 → ssd1306 oled (works, but i2c, no dma) → st7735 (spi, dma, color, the one that shipped). holy clutch.
 
+<p align="center">
+  <img src="docs/images/IMG_8661.jpg" width="42%" alt="the ssd1306 oled showing speed/dist/time">
+  <img src="docs/images/IMG_8727.jpg" width="42%" alt="the st7735 lit up for the first time, backlight only">
+</p>
+<p align="center"><em>the oled era, and the st7735's first light. a white rectangle counts as progress.</em></p>
+
 ## gps: bit-banging nmea from 1983
 
 the neo-6m streams ascii nmea sentences at 9600 baud, 1 hz bursts. the catch: the bcm2835's two hardware uarts (pl011 + mini-uart) both map onto gpio 14/15, which is the same pair you need for printk debugging. so the gps lives on a bit-banged software uart on gpio16, and every bit is sampled by busy-waiting on the cycle counter.
@@ -65,6 +78,11 @@ parsing is checksummed ascii splitting:
 1. accumulate bytes until `\n`, verify the `*hh` trailer (xor of everything between `$` and `*`)
 2. split on commas. RMC gives fix/lat/lon/speed (in knots!)/course/date-time, GGA gives altitude + satellite count
 3. coordinates arrive as `ddmm.mmmm` — degrees AND minutes packed into one number, the classic gotcha. `decimal_degrees = degrees + minutes/60`
+
+<p align="center">
+  <img src="docs/images/IMG_8667.jpg" width="55%" alt="the gps module and oled taped to the laptop for outdoor testing">
+</p>
+<p align="center"><em>gps cold-start ritual: tape everything to the laptop and go stand outside until the satellites show up.</em></p>
 
 ## storage: never touch the FAT
 
@@ -87,6 +105,11 @@ how a fix becomes a map frame, all the way down:
 5. **rasterize**: integer [bresenham](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm), one error term decides step-x vs step-y, no floats, no division, which matters on a core where both are expensive. the dashed (roads) / thin (route) / thick (live track) styles all fall out of the same loop.
 6. **layer**: gray dashed roads → cyan planned route → yellow live track → red heading arrow (three bresenham lines rotated by gps course).
 7. **push**: the 128×128 rgb565 framebuffer gets byte-swapped into a shadow buffer and dma'd over spi0 while the cpu sleeps in `wfi()`, woken by the dma-completion irq.
+
+<p align="center">
+  <img src="docs/images/IMG_8671.jpg" width="55%" alt="the st7735 map page at 6k zoom, roads in gray and the route in yellow">
+</p>
+<p align="center"><em>the map page at 6k zoom — 38,699 segments culled, projected, and bresenham'd into 128×128 pixels.</em></p>
 
 a full frame is **3.5M cycles (~5ms)** at default zoom. it started at ~36M. how it got there is the systems half:
 
@@ -155,6 +178,11 @@ python3 tools/osm2bin.py                               # -> ROADS.BIN (copy to c
 
 then ride. afterwards, mount the card and upload `RIDE.GPX` to strava.
 
+<p align="center">
+  <img src="docs/images/IMG_8724.jpg" width="55%" alt="the ride uploaded to strava on the monitor">
+</p>
+<p align="center"><em>it counts. strava says so.</em></p>
+
 ## thoughts
 
 - i thought dma could help the sd path. it measured at zero, and it measured 9× on the spi path instead lol
@@ -162,5 +190,11 @@ then ride. afterwards, mount the card and upload `RIDE.GPX` to strava.
 - the power work looked done after wfi landed. the duty cycle said 99%, and pointed at the one component (sw-uart) that an interrupt-driven rewrite can't fix, and only different hardware can.
 
 im very happy that the logger is safe **by construction**. it physically cannot write anywhere that bricks the card, which is what let me develop dma writes against my only boot card and then trust the thing on a 3 hour ride.
+
+<p align="center">
+  <img src="docs/images/IMG_8674.jpg" width="46%" alt="mid-ride selfie on the validation ride">
+  <img src="docs/images/IMG_8682.jpg" width="38%" alt="redwoods over the road on the validation ride">
+</p>
+<p align="center"><em>rigorous validation methodology. test conditions were excellent.</em></p>
 
 deeper writeups with sources are in [docs/](docs/) — [architecture](docs/architecture.md), [gps](docs/gps.md), [storage](docs/storage.md), and [display](docs/display.md). [PROVENANCE.md](PROVENANCE.md) has what's new vs ported vs staff (and how this was built).
